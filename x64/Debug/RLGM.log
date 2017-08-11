@@ -1,0 +1,57 @@
+﻿  Radar.cpp
+c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\interface.h(30): warning C4251: 'RLGM::Interface::lock': class 'std::mutex' needs to have dll-interface to be used by clients of class 'RLGM::Interface'
+  c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.10.25017\include\mutex(79): note: see declaration of 'std::mutex'
+c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\interface.h(39): warning C4251: 'RLGM::Interface::views': class 'std::map<int,RLGM::View,std::less<int>,std::allocator<std::pair<const _Kty,_Ty>>>' needs to have dll-interface to be used by clients of class 'RLGM::Interface'
+          with
+          [
+              _Kty=int,
+              _Ty=RLGM::View
+          ]
+  c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\interface.h(39): note: see declaration of 'std::map<int,RLGM::View,std::less<int>,std::allocator<std::pair<const _Kty,_Ty>>>'
+          with
+          [
+              _Kty=int,
+              _Ty=RLGM::View
+          ]
+c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\interface.h(41): warning C4251: 'RLGM::Interface::radars': class 'std::map<int,RLGM::Radar,std::less<int>,std::allocator<std::pair<const _Kty,_Ty>>>' needs to have dll-interface to be used by clients of class 'RLGM::Interface'
+          with
+          [
+              _Kty=int,
+              _Ty=RLGM::Radar
+          ]
+  c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\interface.h(41): note: see declaration of 'std::map<int,RLGM::Radar,std::less<int>,std::allocator<std::pair<const _Kty,_Ty>>>'
+          with
+          [
+              _Kty=int,
+              _Ty=RLGM::Radar
+          ]
+c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\interface.h(51): warning C4251: 'RLGM::Interface::vsShaders': class 'std::map<std::wstring,ID3D11VertexShader *,std::less<_Kty>,std::allocator<std::pair<const _Kty,_Ty>>>' needs to have dll-interface to be used by clients of class 'RLGM::Interface'
+          with
+          [
+              _Kty=std::wstring,
+              _Ty=ID3D11VertexShader *
+          ]
+  c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\interface.h(51): note: see declaration of 'std::map<std::wstring,ID3D11VertexShader *,std::less<_Kty>,std::allocator<std::pair<const _Kty,_Ty>>>'
+          with
+          [
+              _Kty=std::wstring,
+              _Ty=ID3D11VertexShader *
+          ]
+c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\interface.h(52): warning C4251: 'RLGM::Interface::psShaders': class 'std::map<std::wstring,ID3D11PixelShader *,std::less<_Kty>,std::allocator<std::pair<const _Kty,_Ty>>>' needs to have dll-interface to be used by clients of class 'RLGM::Interface'
+          with
+          [
+              _Kty=std::wstring,
+              _Ty=ID3D11PixelShader *
+          ]
+  c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\interface.h(52): note: see declaration of 'std::map<std::wstring,ID3D11PixelShader *,std::less<_Kty>,std::allocator<std::pair<const _Kty,_Ty>>>'
+          with
+          [
+              _Kty=std::wstring,
+              _Ty=ID3D11PixelShader *
+          ]
+c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\interface.h(63): warning C4251: 'RLGM::Interface::tailsCalcThread': class 'std::thread' needs to have dll-interface to be used by clients of class 'RLGM::Interface'
+  c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.10.25017\include\thread(29): note: see declaration of 'std::thread'
+c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\radar.cpp(389): warning C4838: conversion from 'int' to 'FLOAT' requires a narrowing conversion
+c:\users\aseev_av\documents\visual studio 2017\projects\rlgm\rlgm\radar.cpp(389): warning C4244: 'initializing': conversion from 'int' to 'FLOAT', possible loss of data
+  RLGM.vcxproj -> C:\Users\aseev_av\Documents\Visual Studio 2017\Projects\RLGM\x64\Debug\RLGM.dll
+  RLGM.vcxproj -> C:\Users\aseev_av\Documents\Visual Studio 2017\Projects\RLGM\x64\Debug\RLGM.pdb (Partial PDB)
