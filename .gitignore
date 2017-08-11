@@ -1,0 +1,10 @@
+*.tlog
+*.obj
+*.db
+.vs/RLGM/v15/Browse.VC.opendb
+*.db-shm
+.vs/RLGM/v15/Solution.VC.db-wal
+*.obj
+*.pdb
+x64/Debug/RLGM.dll
+*.cso
