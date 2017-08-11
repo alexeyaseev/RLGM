@@ -75,6 +75,8 @@ void DataThreadRawenstvo(int sweep_time_ms)
 	std::vector<uint8_t> line8bit_1(numSamples * numLines);
 	std::vector<uint8_t> line2bit_2(numSamples * numLines);
 	std::vector<uint8_t> line8bit_2(numSamples * numLines);
+	std::vector<float> line8bitFloat_1(numSamples * numLines);
+	std::vector<float> line8bitFloat_2(numSamples * numLines);
 
 	int targetsweeptime_ms = sweep_time_ms;
 	int minsleep_ms = 20;
@@ -82,7 +84,7 @@ void DataThreadRawenstvo(int sweep_time_ms)
 	int pushbatch = 1; //should be power of 2
 
 	std::ifstream ifs8bit_1, ifs8bit_2;
-	ifs8bit_2.open("../../records/rawenstvo_40.bt8", std::ios::binary);
+	//ifs8bit_2.open("../../records/rawenstvo_40.bt8", std::ios::binary);
 	ifs8bit_1.open("../../records/rawenstvo.bt8", std::ios::binary);
 	
 	//ifs8bit_2.open("../../records/rawenstvo_no_noise_40.bt8", std::ios::binary);
@@ -98,16 +100,16 @@ void DataThreadRawenstvo(int sweep_time_ms)
 	{
 		if (g_bPause) continue;
 
-			ifs8bit_1.read((char*)&line8bit_1[line * numSamples], numSamples);
-			if (ifs8bit_1.eof()) {
-				ifs8bit_1.clear();
-				ifs8bit_1.seekg(0, std::ios::beg);
-			}
-			ifs8bit_2.read((char*)&line8bit_2[line * numSamples], numSamples);
-			if (ifs8bit_2.eof()) {
-				ifs8bit_2.clear();
-				ifs8bit_2.seekg(0, std::ios::beg);
-			}
+		ifs8bit_1.read((char*)&line8bit_1[line * numSamples], numSamples);
+		if (ifs8bit_1.eof()) {
+			ifs8bit_1.clear();
+			ifs8bit_1.seekg(0, std::ios::beg);
+		}
+		//ifs8bit_2.read((char*)&line8bit_2[line * numSamples], numSamples);
+		//if (ifs8bit_2.eof()) {
+		//	ifs8bit_2.clear();
+		//	ifs8bit_2.seekg(0, std::ios::beg);
+		//}
 
 		//calculate 2 bit
 		int sum = 0;
@@ -119,15 +121,15 @@ void DataThreadRawenstvo(int sweep_time_ms)
 				line2bit_1[line * numSamples + i] = 3;
 			else
 				line2bit_1[line * numSamples + i] = 0;
-		sum = 0;
-		for (int i = 0; i < numSamples; i++)
-			sum += line8bit_2[line * numSamples + i];
-		mean = sum / numSamples;
-		for (int i = 0; i < numSamples; i++)
-			if (line8bit_2[line * numSamples + i] > 5 * mean)
-				line2bit_2[line * numSamples + i] = 3;
-			else
-				line2bit_2[line * numSamples + i] = 0;
+		//sum = 0;
+		//for (int i = 0; i < numSamples; i++)
+		//	sum += line8bit_2[line * numSamples + i];
+		//mean = sum / numSamples;
+		//for (int i = 0; i < numSamples; i++)
+		//	if (line8bit_2[line * numSamples + i] > 5 * mean)
+		//		line2bit_2[line * numSamples + i] = 3;
+		//	else
+		//		line2bit_2[line * numSamples + i] = 0;
 
 		// fot tail test
 		/*if (line == aim_line) {
@@ -136,10 +138,12 @@ void DataThreadRawenstvo(int sweep_time_ms)
 		aim_line -= 1;
 		if (aim_line < 0) aim_line = numLines - 1;
 		}*/
-		if (line == 8190)
-			std::cout << "1";
+
+		for (int i = 0; i < numSamples; i++) line8bitFloat_1[line * numSamples + i] = line8bit_1[line * numSamples + i] / 255.0f;
+		for (int i = 0; i < numSamples; i++) line8bitFloat_2[line * numSamples + i] = line8bit_2[line * numSamples + i] / 255.0f;
+
 		if (line % pushbatch == pushbatch - 1) {
-			//moduleRLGM.Set8bitData(1, line - pushbatch + 1, line, line8bit_1, (line - pushbatch + 1) * numSamples);
+			moduleRLGM.Set8bitData(1, line - pushbatch + 1, line, line8bitFloat_1, (line - pushbatch + 1) * numSamples);
 			moduleRLGM.Set2bitData(1, line - pushbatch + 1, line, line2bit_1, (line - pushbatch + 1) * numSamples);
 			//moduleRLGM.Set8bitData(2, line - pushbatch + 1, line, line8bit_2, (line - pushbatch + 1) * numSamples);
 			//moduleRLGM.Set2bitData(2, line - pushbatch + 1, line, line2bit_2, (line - pushbatch + 1) * numSamples);
