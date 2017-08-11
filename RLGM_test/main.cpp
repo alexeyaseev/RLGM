@@ -25,12 +25,12 @@ const double DEFAULT_ALPHA_THR_COLORCORRECTION_8BIT = 1.0;
 //<--- 8 bit Color correction
 //---> 2 bit Color correction default params
 const uint32_t DEFAULT_2BIT_COLOR1 = RGBA(0, 0, 0, 0);
-const uint32_t DEFAULT_2BIT_COLOR2 = RGBA(204, 119, 34, 255);
-const uint32_t DEFAULT_2BIT_COLOR3 = RGBA(255, 160, 0, 255);
+//const uint32_t DEFAULT_2BIT_COLOR2 = RGBA(204, 119, 34, 255);
+//const uint32_t DEFAULT_2BIT_COLOR3 = RGBA(255, 160, 0, 255);
+//const uint32_t DEFAULT_2BIT_COLOR4 = RGBA(255, 255, 0, 255);
+const uint32_t DEFAULT_2BIT_COLOR2 = RGBA(175, 127, 0, 255);
+const uint32_t DEFAULT_2BIT_COLOR3 = RGBA(242, 175, 0, 255);
 const uint32_t DEFAULT_2BIT_COLOR4 = RGBA(255, 255, 0, 255);
-//const uint32_t DEFAULT_2BIT_COLOR2 = RGBA(255, 175, 175, 255);
-//const uint32_t DEFAULT_2BIT_COLOR3 = RGBA(255, 135, 135, 255);
-//const uint32_t DEFAULT_2BIT_COLOR4 = RGBA(255, 0, 0, 255);
 //<--- 2 bit Color correction
 //---> Tail Color correction default params
 const double DEFAULT_LOW_THR_COLORCORRECTION_TAIL = 0.5;
