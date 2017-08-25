@@ -9,7 +9,7 @@ namespace RLGM
 	{
 
 	}
-	View::View(HWND HWnd, RLGM::Interface* Owner)
+	View::View(HWND HWnd, RLGM::Interface* Owner, double heightAboveSea, double longitude, double latitude)
 	{
 		hWnd = HWnd;
 		owner = Owner;
@@ -17,9 +17,13 @@ namespace RLGM
 		RECT rc;
 		GetClientRect(hWnd, &rc);
 		width = rc.right - rc.left;
-		height = rc.bottom - rc.top;		
+		height = rc.bottom - rc.top;
+		aspectRatio = height / (double)width;
 
-		aspectRatio = height / (float)width;
+		geoPosition.Longitude = longitude;
+		geoPosition.Latitude = latitude;
+		geoPosition.HUnderSee = heightAboveSea;
+		geoPosition.Azimuth = 0;
 
 		InitializeGraphics();
 	}
@@ -413,6 +417,33 @@ namespace RLGM
 		geoms.erase(id);
 	}
 
+	RLGM::GeoCoord View::xyToGeo(int x, int y) {
+		double X = 2 * -x * scale / height;
+		double Y = 2 * -y * scale / height;
+		double Z = std::sqrt(6371000.0 * 6371000.0 - X * X - Y * Y);
+
+		DirectX::XMMATRIX vect;
+		vect.r[0].m128_f32[0] = X;
+		vect.r[0].m128_f32[1] = Y;
+		vect.r[0].m128_f32[2] = Z;
+		vect.r[0].m128_f32[3] = 1;
+
+		vect *= DirectX::XMMatrixRotationZ((float)(-geoPosition.Azimuth * (RLGM::M_PI / 180))) *
+			DirectX::XMMatrixRotationX((float)(geoPosition.Latitude * (RLGM::M_PI / 180))) *
+			DirectX::XMMatrixRotationY((float)(geoPosition.Longitude * (RLGM::M_PI / 180)));
+
+		auto coord = GeoCoord();
+		coord.HUnderSee = 0;
+		coord.Longitude = std::atan2(vect.r[0].m128_f32[0], vect.r[0].m128_f32[2]) / (RLGM::M_PI / 180);
+		coord.Latitude = -std::atan(vect.r[0].m128_f32[1] / std::sqrt(vect.r[0].m128_f32[0] * vect.r[0].m128_f32[0] + vect.r[0].m128_f32[2] * vect.r[0].m128_f32[2])) / (RLGM::M_PI / 180);
+		coord.Azimuth = geoPosition.Azimuth;
+
+		return coord;
+	}
+	void View::AddPixelOffset(int nX, int nY) {
+		geoPosition = xyToGeo(nX, nY);
+	}
+
 	//позиционирование Радара: центр, масштаб, поворот
 	void View::SetRadarPosition(int id, int nX, int nY) 
 	{
@@ -569,7 +600,7 @@ namespace RLGM
 				if (!show2bit[radar_id]) continue;
 				owner->g_pImmediateContext->OMSetRenderTargets(1, &textureRadarCurrent[num_radars].m_renderTargetView, nullptr);				
 				owner->g_pImmediateContext->ClearRenderTargetView(textureRadarCurrent[num_radars].m_renderTargetView, black);
-				owner->radars[radar_id].Draw2bit(geoms[radar_id], aspectRatio, owner->psShaders[L"shader2bit.cso"], owner->vsShaders[L"vs_shader1.cso"], owner->samplerPoint/*, radarDrawMode*/);
+				owner->radars[radar_id].Draw2bit(geoPosition, aspectRatio, scale, owner->psShaders[L"shader2bit.cso"], owner->vsShaders[L"vs_shader1.cso"], owner->samplerPoint/*, radarDrawMode*/);
 				num_radars++;
 			}
 			//<--- Drawing 2bit of each radar into separate layers
@@ -615,7 +646,7 @@ namespace RLGM
 				if (!showTails[radar_id]) continue;
 				owner->g_pImmediateContext->OMSetRenderTargets(1, &textureRadarCurrent[num_radars].m_renderTargetView, nullptr);
 				owner->g_pImmediateContext->ClearRenderTargetView(textureRadarCurrent[num_radars].m_renderTargetView, black);
-				owner->radars[radar_id].Draw2bitTail(geoms[radar_id], aspectRatio, owner->psShaders[L"shader2bit.cso"], owner->vsShaders[L"vs_shader1.cso"], owner->samplerPoint/*, radarDrawMode*/);
+				owner->radars[radar_id].Draw2bitTail(geoPosition, aspectRatio, scale, owner->psShaders[L"shader2bit.cso"], owner->vsShaders[L"vs_shader1.cso"], owner->samplerPoint/*, radarDrawMode*/);
 				num_radars++;
 			}
 			//<--- 1. Drawing tail 2bit of each radar into separate layers
@@ -646,7 +677,7 @@ namespace RLGM
 				if (!showTails[radar_id]) continue;
 				owner->g_pImmediateContext->OMSetRenderTargets(1, &textureRadarCurrent[num_radars].m_renderTargetView, nullptr);
 				owner->g_pImmediateContext->ClearRenderTargetView(textureRadarCurrent[num_radars].m_renderTargetView, black);
-				owner->radars[radar_id].DrawTail(geoms[radar_id], aspectRatio, owner->psShaders[L"shaderTail.cso"], owner->vsShaders[L"vs_shader1.cso"], owner->samplerPoint);//, radarDrawMode);
+				owner->radars[radar_id].DrawTail(geoPosition, aspectRatio, scale, owner->psShaders[L"shaderTail.cso"], owner->vsShaders[L"vs_shader1.cso"], owner->samplerPoint);//, radarDrawMode);
 				num_radars++;
 			}
 			//<--- 3. Drawing tail of each radar into separate layers
@@ -699,7 +730,8 @@ namespace RLGM
 				owner->g_pImmediateContext->OMSetRenderTargets(1, &textureRadarCurrent[num_radars].m_renderTargetView, nullptr);
 				owner->g_pImmediateContext->ClearRenderTargetView(textureRadarCurrent[num_radars].m_renderTargetView, black);
 				ID3D11SamplerState* txSampler = (m_8bitTexture_SamplerType == RLGM::TextureSamplerType::POINT) ? owner->samplerPoint : owner->samplerLinear;
-				owner->radars[radar_id].Draw8bit(geoms[radar_id], aspectRatio, owner->psShaders[L"shader8bit.cso"], owner->vsShaders[L"vs_shader1.cso"], txSampler/*, radarDrawMode*/);
+				//owner->radars[radar_id].Draw8bit(geoms[radar_id], aspectRatio, owner->psShaders[L"shader8bit.cso"], owner->vsShaders[L"vs_shader1.cso"], txSampler/*, radarDrawMode*/);
+				owner->radars[radar_id].Draw8bit(geoPosition, aspectRatio, scale, owner->psShaders[L"shader8bit.cso"], owner->vsShaders[L"vs_shader1.cso"], txSampler/*, radarDrawMode*/);
 				num_radars++;
 			}
 			//<--- 1. Drawing 8bit of each radar into separate layers

@@ -359,13 +359,13 @@ namespace RLGM
 	}
 
 	//создать, удалить Окно
-	RLGM::ReturnCode Interface::CreateView(HWND hWnd, int nViewId)
+	RLGM::ReturnCode Interface::CreateView(HWND hWnd, int nViewId, double height, double longitude, double latitude)
 	{
 		std::lock_guard<std::mutex> guard{ lock };
 
 		//создать Окно и добавить его в словарь
 		views.erase(nViewId);
-		views.try_emplace(nViewId, hWnd, this);
+		views.try_emplace(nViewId, hWnd, this, height, longitude, latitude);
 
 		//добавить Радары этому Окну
 		for (auto& var : radars)
@@ -380,14 +380,14 @@ namespace RLGM
 	}
 
 	//создать, удалить Радар
-	RLGM::ReturnCode Interface::CreateRadar(int nRadarId)
+	RLGM::ReturnCode Interface::CreateRadar(int nRadarId, float height, float longitude, float latitude)
 	{
 		std::lock_guard<std::mutex> guard{ lock };
 
 		radars.erase(nRadarId);
 
 		//создать Радар и добавить его в словарь
-		radars.try_emplace(nRadarId, nRadarId, this);
+		radars.try_emplace(nRadarId, nRadarId, height, longitude, latitude, this);
 
 		//добавить Радар каждому Окну
 		for (auto& var : views)
@@ -440,6 +440,58 @@ namespace RLGM
 		}
 		return false;
 	}
+
+	//позиционирование окна
+	void Interface::SetViewScale(int nViewId, double value) 
+	{
+		std::lock_guard<std::mutex> guard{ lock };
+		if (views.count(nViewId))
+			views.at(nViewId).scale = value;
+	}
+	void Interface::AddViewScale(int nViewId, double value) 
+	{
+		std::lock_guard<std::mutex> guard{ lock };
+		if (views.count(nViewId))
+			views.at(nViewId).scale *= value;
+	}
+	//позиционирование радара
+	void Interface::SetRadarSampleSize(int nRadarId, double sampleSize) 
+	{
+		std::lock_guard<std::mutex> guard{ lock };
+		for (auto& var : radars)
+			if ((var.first == nRadarId) || (nRadarId == -1))
+				radars[var.first].m_sampleSize = sampleSize;
+	}
+	void Interface::SetRadarRotation(int nRadarId, double rotInGrad) 
+	{
+		std::lock_guard<std::mutex> guard{ lock };
+		for (auto& var : radars)
+			if ((var.first == nRadarId) || (nRadarId == -1))
+				radars[var.first].m_angle = rotInGrad;
+	}
+	void Interface::SetAzimuth(int nViewId, double rotInGrad)
+	{
+		std::lock_guard<std::mutex> guard{ lock };
+		for (auto& var : views)
+			if ((var.first == nViewId) || (nViewId == -1))
+				views[var.first].geoPosition.Azimuth = rotInGrad;
+	}
+
+	void Interface::AddAzimuth(int nViewId, double rotInGrad)
+	{
+		std::lock_guard<std::mutex> guard{ lock };
+		for (auto& var : views)
+			if ((var.first == nViewId) || (nViewId == -1))
+				views[var.first].geoPosition.Azimuth += rotInGrad;
+	}
+	void Interface::AddViewOffset(int nViewId, int x, int y) 
+	{
+		std::lock_guard<std::mutex> guard{ lock };
+		for (auto& var : views)
+			if ((var.first == nViewId) || (nViewId == -1))
+				views[var.first].AddPixelOffset(x, y);
+	}
+
 
 	//позиционирование Радара: центр
 	void Interface::SetRadarPos(int nViewId, int nRadarId, int nX, int nY)
@@ -526,10 +578,6 @@ namespace RLGM
 		//	frameNumber = 0;
 		//}
 
-		//обновление ПРЛИ Радаров
-		//foreach(var item in radars.Keys)
-		//	((RLGM_Radar)(radars[item])).UpdatePRLI();
-
 		//отрисовка Окон
 		for (auto& var : views)
 			if ((var.first == nViewId) || (nViewId == -1))
@@ -564,7 +612,15 @@ namespace RLGM
 	}
 
 	//Передать Линейку 8 и 2 битки
-	void Interface::Set8bitData(int nRadarId, int start_line, int stop_line, const std::vector<float> &data, int offset)
+	/*void Interface::Set8bitData(int nRadarId, int start_line, int stop_line, const std::vector<float> &data, int offset) 
+	{
+		std::lock_guard<std::mutex> guard{ lock };
+
+		for (auto& var : radars)
+			if ((var.first == nRadarId) || (nRadarId == -1))
+				radars[var.first].Set8bitData(start_line, stop_line, data, offset);
+	}*/
+	void Interface::Set8bitData(int nRadarId, int start_line, int stop_line, const std::vector<uint8_t> &data, int offset)
 	{
 		std::lock_guard<std::mutex> guard{ lock };
 
@@ -572,6 +628,7 @@ namespace RLGM
 			if ((var.first == nRadarId) || (nRadarId == -1))
 				radars[var.first].Set8bitData(start_line, stop_line, data, offset);
 	}
+
 	void Interface::Set2bitData(int nRadarId, int start_line, int stop_line, const std::vector<uint8_t> &data, int offset)
 	{
 		std::lock_guard<std::mutex> guard{ lock };

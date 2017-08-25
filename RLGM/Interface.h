@@ -93,16 +93,27 @@ namespace RLGM
 		RLGM::ReturnCode Init(int tails_calc_period_ms);
 		void DeInit();
 		//создать, удалить Окно
-		RLGM::ReturnCode CreateView(HWND hWnd, int nViewId);
+		RLGM::ReturnCode CreateView(HWND hWnd, int nViewId, double height, double longitude, double latitude);
 		void DeleteView(int nViewId);
 		//создать, удалить Радар (should be >0)
-		RLGM::ReturnCode CreateRadar(int nRadarId); //nRadarId should be >0
+		RLGM::ReturnCode CreateRadar(int nRadarId, float height, float longitude, float latitude); //nRadarId should be >0
 		void DeleteRadar(int nRadarId);
 		//добавить ПРЛИ в Радар
 		RLGM::ReturnCode AddPRLI(int nRadarId, RLGM::PRLIType nType, int nPRLISampleCount, int nPRLILineCount);
 
 		//вычисление Хвостов
 		void CalcTails(int period_ms);
+
+		//позиционирование окна
+		void SetViewScale(int nViewId, double value);
+		void AddViewScale(int nViewId, double value);
+		void SetAzimuth(int nViewId, double value);
+		void AddAzimuth(int nViewId, double value);
+		void AddViewOffset(int nViewId, int x, int y);
+
+		//позиционирование радара
+		void SetRadarSampleSize(int nRadarId, double sampleSize);
+		void SetRadarRotation(int nRadarId, double rotInGrad);
 
 		//позиционирование Радара: центр
 		void SetRadarPos(int nViewId, int nRadarId, int nX, int nY);
@@ -116,8 +127,6 @@ namespace RLGM
 		//позиционирование Радара: поворот
 		void SetRotation(int nViewId, int nRadarId, float dRotInGrad);
 		void AddRotation(int nViewId, int nRadarId, float delta);
-
-		//void RestoreDevice();
 
 		//отрисовать окно
 		RLGM::ReturnCode DrawView(int nViewId);
@@ -133,7 +142,9 @@ namespace RLGM
 		bool GetShowPRLI(int nViewId, int nRadarId, RLGM::PRLIType nPRLIType);
 
 		//Передать Линейку 8 и 2 битки
-		void Set8bitData(int nRadarId, int start_line, int stop_line, const std::vector<float> &data, int offset);
+		//use float version along with R32_FLOAT texture format
+		//void Set8bitData(int nRadarId, int start_line, int stop_line, const std::vector<float> &data, int offset);
+		void Set8bitData(int nRadarId, int start_line, int stop_line, const std::vector<uint8_t> &data, int offset);
 		void Set2bitData(int nRadarId, int start_line, int stop_line, const std::vector<uint8_t> &data, int offset);
 	
 		//возврат Картографического слоя

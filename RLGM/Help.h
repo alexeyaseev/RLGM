@@ -31,6 +31,19 @@ namespace RLGM
 		float radius; //радиус круга
 		float rotation; //поворот круга
 	};
+	//информация о географическом расположении
+	struct GeoCoord
+	{
+		//Долгота
+		double Longitude;
+		//Широта
+		double Latitude;
+		//Высота над уровнем моря
+		double HUnderSee;
+		//Поворот
+		double Azimuth = 0;
+	};
+
 
 	//тип объединения ПРЛИ
 	enum class PRLIUnificationRule { MAX = 0, LINEAR = 1 };

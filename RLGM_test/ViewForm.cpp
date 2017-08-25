@@ -34,16 +34,20 @@ void ViewForm::wheelEvent(QWheelEvent *ev)
 
 	if (ev->angleDelta().y() > 0)
 	{
-		moduleRLGM->MultiplyDPPCenter(viewId, -1, scale);
-		moduleRLGM->AddRadarPos(viewId, -1, -(int)(offset_x * (scale - 1)), -(int)(offset_y * (scale - 1)));
+		moduleRLGM->AddViewScale(viewId, 1/scale);
+		moduleRLGM->AddViewOffset(viewId, -(int)(offset_x * (scale - 1)), -(int)(offset_y * (scale - 1)));
+		//moduleRLGM->MultiplyDPPCenter(viewId, -1, scale);
+		//moduleRLGM->AddRadarPos(viewId, -1, -(int)(offset_x * (scale - 1)), -(int)(offset_y * (scale - 1)));
 
 		moduleRLGM->MultiplySurfacesDPPCenter(viewId, scale);
 		moduleRLGM->AddSurfacesShift(viewId, -(int)(offset_x * (scale - 1)), -(int)(offset_y * (scale - 1)));
 	}
 	else
 	{
-		moduleRLGM->MultiplyDPPCenter(viewId, -1, 1 / scale);
-		moduleRLGM->AddRadarPos(viewId, -1, +(int)(offset_x * (1 - 1 / scale)), +(int)(offset_y * (1 - 1 / scale)));
+		moduleRLGM->AddViewScale(viewId, scale);
+		moduleRLGM->AddViewOffset(viewId, +(int)(offset_x * (1 - 1/scale)), +(int)(offset_y * (1 - 1/scale)));
+		//moduleRLGM->MultiplyDPPCenter(viewId, -1, 1 / scale);
+		//moduleRLGM->AddRadarPos(viewId, -1, +(int)(offset_x * (1 - 1 / scale)), +(int)(offset_y * (1 - 1 / scale)));
 
 		moduleRLGM->MultiplySurfacesDPPCenter(viewId, 1 / scale);
 		moduleRLGM->AddSurfacesShift(viewId, +(int)(offset_x * (1 - 1 / scale)), +(int)(offset_y * (1 - 1 / scale)));
@@ -60,7 +64,8 @@ void ViewForm::mouseMoveEvent(QMouseEvent *ev)
 {
 	if (ev->buttons() == Qt::LeftButton)
 	{
-		moduleRLGM->AddRadarPos(viewId, -1, ev->pos().x() - mousePosX, ev->pos().y() - mousePosY);
+		moduleRLGM->AddViewOffset(viewId, ev->pos().x() - mousePosX, ev->pos().y() - mousePosY);
+		//moduleRLGM->AddRadarPos(viewId, -1, ev->pos().x() - mousePosX, ev->pos().y() - mousePosY);
 		moduleRLGM->AddSurfacesShift(viewId, ev->pos().x() - mousePosX, ev->pos().y() - mousePosY);
 		mousePosX = ev->pos().x();
 		mousePosY = ev->pos().y();

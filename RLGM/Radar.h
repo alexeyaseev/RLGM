@@ -10,11 +10,16 @@ namespace RLGM
 {
 	class Radar
 	{
-	private:
+	public:
 		RLGM::Interface* owner = nullptr;
 
 		//id радара
 		int id = -1;
+		double m_height = 0;
+		double m_longitude = 0;
+		double m_latitude = 0;
+		double m_sampleSize = 1;
+		double m_angle = 0;
 
 		//количество линеек и точек дальности
 		int numLines = -1;
@@ -67,19 +72,22 @@ namespace RLGM
 
 	public:
 		Radar();
-		Radar(int Id, RLGM::Interface* Owner);
+		Radar(int Id, double height, double longitude, double latitude, RLGM::Interface* Owner);
 		//Добавить ПРЛИ
 		void AddPRLI(RLGM::PRLIType nType, int nPRLISampleCount, int nPRLILineCount);
 		//Обновление линейки ПРЛИ в памяти видеокарты
 		void Set8bitData(int start_line, int stop_line, const std::vector<float> &data8bit, int offset);
+		void Set8bitData(int start_line, int stop_line, const std::vector<uint8_t> &data8bit, int offset);
 		void Set2bitData(int start_line, int stop_line, const std::vector<uint8_t> &data8bit, int offset);
 
+		DirectX::XMMATRIX Radar::CalculateWorldViewProjMatrix(RLGM::GeoCoord view_position, double view_aspect, double view_scale);
 		//Отрисовка 8 битки
-		void Draw8bit(RLGM::RadarPositioning geom, float aspect, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/);
+		//void Draw8bit(RLGM::RadarPositioning geom, float aspect, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/);
+		void Draw8bit(RLGM::GeoCoord view_position, double aspect, double scale, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/);
 		//Отрисовка 2 битки
-		void Draw2bit(RLGM::RadarPositioning geom, float aspect, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/);
-		void Draw2bitTail(RLGM::RadarPositioning geom, float aspect, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/);
-		void DrawTail(RLGM::RadarPositioning geom, float aspect, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/);
+		void Draw2bit(RLGM::GeoCoord view_position, double view_aspect, double view_scale, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/);
+		void Draw2bitTail(RLGM::GeoCoord view_position, double view_aspect, double view_scale, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/);
+		void DrawTail(RLGM::GeoCoord view_position, double view_aspect, double view_scale, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/);
 
 
 		void SetUnificationCoefs(const std::vector<uint16_t>& values);

@@ -7,9 +7,13 @@
 namespace RLGM 
 {
 	Radar::Radar() {}
-	Radar::Radar(int Id, RLGM::Interface* Owner)
+	Radar::Radar(int Id, double height, double longitude, double latitude, RLGM::Interface* Owner)
 	{
 		id = Id;
+		m_height = height;
+		m_longitude = longitude;
+		m_latitude = latitude;
+		m_angle = 0;
 		owner = Owner;
 	}
 
@@ -99,7 +103,7 @@ namespace RLGM
 				textureDesc.Height = numLines;
 				textureDesc.MipLevels = 1;
 				textureDesc.ArraySize = 1;
-				textureDesc.Format = DXGI_FORMAT_R32_FLOAT;
+				textureDesc.Format = DXGI_FORMAT_R8_UNORM;
 				textureDesc.SampleDesc.Count = 1;
 				textureDesc.SampleDesc.Quality = 0;
 				textureDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -210,7 +214,7 @@ namespace RLGM
 	}
 
 	//Обновление сектора [start_line, end_line] 8 битки
-	void Radar::Set8bitData(int start_line, int stop_line, const std::vector<float> &data, int offset)
+	/*void Radar::Set8bitData(int start_line, int stop_line, const std::vector<float> &data, int offset) //use this along with R32_FLOAT texture format
 	{
 		D3D11_BOX region;
 		region.left = 0;
@@ -219,7 +223,30 @@ namespace RLGM
 		region.bottom = stop_line + 1;
 		region.front = 0;
 		region.back = 1;
-		owner->g_pImmediateContext->UpdateSubresource(texture8Bit.m_Texture, 0, &region, &data[offset], numSamples * sizeof(float), 0);
+		owner->g_pImmediateContext->UpdateSubresource(texture8Bit.m_Texture, 0, &region, &data[offset], numSamples * sizeof(data[0]), 0);
+	}*/
+	void Radar::Set8bitData(int start_line, int stop_line, const std::vector<uint8_t> &data, int offset)
+	{
+		/*D3D11_MAPPED_SUBRESOURCE mr;
+		HRESULT hr = owner->g_pImmediateContext->Map(texture8Bit.m_Texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mr);
+		uint8_t* mappedData = reinterpret_cast<uint8_t*>(mr.pData);
+		mappedData += mr.RowPitch * start_line;
+		//for (int line = start_line; line <= stop_line; ++line)
+		//{
+			memcpy(mappedData, &data[offset], 4096 * (stop_line - start_line + 1));
+			//mappedData += mr.RowPitch;
+			//buffer += rowspan;
+		//}
+		owner->g_pImmediateContext->Unmap(texture8Bit.m_Texture, 0);
+		return;*/
+		D3D11_BOX region;
+		region.left = 0;
+		region.right = numSamples;
+		region.top = start_line;
+		region.bottom = stop_line + 1;
+		region.front = 0;
+		region.back = 1;
+		owner->g_pImmediateContext->UpdateSubresource(texture8Bit.m_Texture, 0, &region, &data[offset], numSamples * sizeof(data[0]), 0);
 	}
 	//Обновление сектора [start_line, end_line] 8 битки
 	void Radar::Set2bitData(int start_line, int stop_line, const std::vector<uint8_t> &data, int offset)
@@ -235,7 +262,7 @@ namespace RLGM
 	}
 
 	//Отрисовка 8 битки
-	void Radar::Draw8bit(RLGM::RadarPositioning geom, float aspect, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/)
+	/*void Radar::Draw8bit(RLGM::RadarPositioning geom, float aspect, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler)//, RadarDrawMode drawMode)
 	{
 		if (texture8Bit.m_Texture) //если существует 8 битка
 		{
@@ -263,8 +290,58 @@ namespace RLGM
 			owner->g_pImmediateContext->PSSetSamplers(1, 1, &owner->samplerPoint);
 			owner->g_pImmediateContext->Draw(3 * numLines, 0);
 		}
+	}*/
+	DirectX::XMMATRIX Radar::CalculateWorldViewProjMatrix(RLGM::GeoCoord view_position, double view_aspect, double view_scale) {
+		//радиус круга в метрах
+		double radius = m_sampleSize*numSamples;
+		//вычисление матрицы позиционирования
+		DirectX::XMMATRIX matrixAzim = DirectX::XMMatrixRotationZ((float)(-view_position.Azimuth * (RLGM::M_PI / 180)));
+		DirectX::XMMATRIX matrix = DirectX::XMMatrixScaling(radius, radius, 1);
+
+		matrix *= DirectX::XMMatrixRotationZ(-m_angle * RLGM::M_PI / 180);
+
+		matrix *= DirectX::XMMatrixTranslation(0, 0, 6371000)*
+			DirectX::XMMatrixRotationX(-m_latitude * (RLGM::M_PI / 180))*
+			DirectX::XMMatrixRotationY(m_longitude*(RLGM::M_PI / 180));
+
+		matrix *= DirectX::XMMatrixRotationY((float)(-view_position.Longitude* (RLGM::M_PI / 180))) *
+			DirectX::XMMatrixRotationX((float)(view_position.Latitude * (RLGM::M_PI / 180)));
+
+		matrix *= matrixAzim * DirectX::XMMatrixScaling(view_aspect / view_scale, 1 / view_scale, 0);
+		return matrix;
 	}
-	void Radar::Draw2bit(RLGM::RadarPositioning geom, float aspect, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/)
+	void Radar::Draw8bit(RLGM::GeoCoord view_position, double view_aspect, double view_scale, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler)
+	{
+		if (texture8Bit.m_Texture) //если существует 8 битка
+		{
+			// Set vertex buffer
+			UINT stride = sizeof(RLGM::PositionedTexturedVertex);
+			UINT offset = 0;
+			owner->g_pImmediateContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+			owner->g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+			// Set shaders
+			owner->g_pImmediateContext->VSSetShader(vs, nullptr, 0);
+			RLGM::ConstantBuffer1 cb1;			//вычисление матрицы позиционирования
+			//cb1.mViewWorldProjection = DirectX::XMMatrixRotationZ(-geom.rotation * ((float)RLGM::M_PI / 180)) *
+				//DirectX::XMMatrixScaling(aspect * geom.radius, geom.radius, 1) *
+				//DirectX::XMMatrixTranslation(geom.centerX, geom.centerY, 0);
+			cb1.mViewWorldProjection = CalculateWorldViewProjMatrix(view_position, view_aspect, view_scale);
+			
+			owner->g_pImmediateContext->UpdateSubresource(owner->constantBuffer1, 0, nullptr, &cb1, 0, 0);
+			owner->g_pImmediateContext->VSSetConstantBuffers(0, 1, &owner->constantBuffer1);
+			owner->g_pImmediateContext->PSSetShader(ps, nullptr, 0);
+			RLGM::ConstantBuffer3 cb3{ id };
+			owner->g_pImmediateContext->UpdateSubresource(owner->constantBuffer3, 0, nullptr, &cb3, 0, 0);
+			owner->g_pImmediateContext->PSSetConstantBuffers(0, 1, &owner->constantBuffer3);
+			owner->g_pImmediateContext->PSSetShaderResources(0, 1, &texture8Bit.m_shaderResourceView);
+			owner->g_pImmediateContext->PSSetShaderResources(1, 1, &textureUnificationCoefs.m_shaderResourceView);
+			owner->g_pImmediateContext->PSSetSamplers(0, 1, &sampler);
+			owner->g_pImmediateContext->PSSetSamplers(1, 1, &owner->samplerPoint);
+			owner->g_pImmediateContext->Draw(3 * numLines, 0);
+		}
+	}
+	void Radar::Draw2bit(RLGM::GeoCoord view_position, double view_aspect, double view_scale, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/)
 	{
 		if (texture2Bit.m_Texture) //если существует 2 битка
 		{
@@ -277,9 +354,10 @@ namespace RLGM
 			// Set shaders
 			owner->g_pImmediateContext->VSSetShader(vs, nullptr, 0);
 			RLGM::ConstantBuffer1 cb1;			//вычисление матрицы позиционирования
-			cb1.mViewWorldProjection = DirectX::XMMatrixRotationZ(-geom.rotation * ((float)RLGM::M_PI / 180)) *
-				DirectX::XMMatrixScaling(aspect * geom.radius, geom.radius, 1) *
-				DirectX::XMMatrixTranslation(geom.centerX, geom.centerY, 0);
+			//cb1.mViewWorldProjection = DirectX::XMMatrixRotationZ(-geom.rotation * ((float)RLGM::M_PI / 180)) *
+				//DirectX::XMMatrixScaling(aspect * geom.radius, geom.radius, 1) *
+				//DirectX::XMMatrixTranslation(geom.centerX, geom.centerY, 0);
+			cb1.mViewWorldProjection = CalculateWorldViewProjMatrix(view_position, view_aspect, view_scale);
 			owner->g_pImmediateContext->UpdateSubresource(owner->constantBuffer1, 0, nullptr, &cb1, 0, 0);
 			owner->g_pImmediateContext->VSSetConstantBuffers(0, 1, &owner->constantBuffer1);
 			owner->g_pImmediateContext->PSSetShader(ps, nullptr, 0);
@@ -293,7 +371,7 @@ namespace RLGM
 			owner->g_pImmediateContext->Draw(3 * numLines, 0);
 		}
 	}
-	void Radar::DrawTail(RLGM::RadarPositioning geom, float aspect, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/)
+	void Radar::DrawTail(RLGM::GeoCoord view_position, double view_aspect, double view_scale, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/)
 	{
 		if (textureTail[1 - textureTailIndexForCalc].m_Texture) //если существует 2 битка
 		{
@@ -306,9 +384,10 @@ namespace RLGM
 			// Set shaders
 			owner->g_pImmediateContext->VSSetShader(vs, nullptr, 0);
 			RLGM::ConstantBuffer1 cb1;			//вычисление матрицы позиционирования
-			cb1.mViewWorldProjection = DirectX::XMMatrixRotationZ(-geom.rotation * ((float)RLGM::M_PI / 180)) *
-				DirectX::XMMatrixScaling(aspect * geom.radius, geom.radius, 1) *
-				DirectX::XMMatrixTranslation(geom.centerX, geom.centerY, 0);
+			//cb1.mViewWorldProjection = DirectX::XMMatrixRotationZ(-geom.rotation * ((float)RLGM::M_PI / 180)) *
+				//DirectX::XMMatrixScaling(aspect * geom.radius, geom.radius, 1) *
+				//DirectX::XMMatrixTranslation(geom.centerX, geom.centerY, 0);
+			cb1.mViewWorldProjection = CalculateWorldViewProjMatrix(view_position, view_aspect, view_scale);
 			owner->g_pImmediateContext->UpdateSubresource(owner->constantBuffer1, 0, nullptr, &cb1, 0, 0);
 			owner->g_pImmediateContext->VSSetConstantBuffers(0, 1, &owner->constantBuffer1);
 			owner->g_pImmediateContext->PSSetShader(ps, nullptr, 0);
@@ -320,7 +399,7 @@ namespace RLGM
 			owner->g_pImmediateContext->Draw(3 * numLines, 0);
 		}
 	}
-	void Radar::Draw2bitTail(RLGM::RadarPositioning geom, float aspect, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/)
+	void Radar::Draw2bitTail(RLGM::GeoCoord view_position, double view_aspect, double view_scale, ID3D11PixelShader* ps, ID3D11VertexShader* vs, ID3D11SamplerState* sampler/*, RadarDrawMode drawMode*/)
 	{
 		if (textureTail[1 - textureTailIndexForCalc].m_Texture) //если существует 2 битка хвоста
 		{
@@ -333,9 +412,10 @@ namespace RLGM
 			// Set shaders
 			owner->g_pImmediateContext->VSSetShader(vs, nullptr, 0);
 			RLGM::ConstantBuffer1 cb1;			//вычисление матрицы позиционирования
-			cb1.mViewWorldProjection = DirectX::XMMatrixRotationZ(-geom.rotation * ((float)RLGM::M_PI / 180)) *
-				DirectX::XMMatrixScaling(aspect * geom.radius, geom.radius, 1) *
-				DirectX::XMMatrixTranslation(geom.centerX, geom.centerY, 0);
+			//cb1.mViewWorldProjection = DirectX::XMMatrixRotationZ(-geom.rotation * ((float)RLGM::M_PI / 180)) *
+				//DirectX::XMMatrixScaling(aspect * geom.radius, geom.radius, 1) *
+				//DirectX::XMMatrixTranslation(geom.centerX, geom.centerY, 0);
+			cb1.mViewWorldProjection = CalculateWorldViewProjMatrix(view_position, view_aspect, view_scale);
 			owner->g_pImmediateContext->UpdateSubresource(owner->constantBuffer1, 0, nullptr, &cb1, 0, 0);
 			owner->g_pImmediateContext->VSSetConstantBuffers(0, 1, &owner->constantBuffer1);
 			owner->g_pImmediateContext->PSSetShader(ps, nullptr, 0);

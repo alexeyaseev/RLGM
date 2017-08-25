@@ -45,7 +45,9 @@ namespace RLGM
 		HWND hWnd; // хендл окна
 		int width; // ширина окна
 		int height; // высота окна
-		float aspectRatio; //соотношение сторон		
+		double aspectRatio; //соотношение сторон		
+		double scale = 1;
+		RLGM::GeoCoord geoPosition; //географическое расположение
 		float extensionCoef = 1.0f;
 
 		//слои Радара при отрисовке
@@ -58,10 +60,13 @@ namespace RLGM
 		RLGM::Texture textureFinalTail;
 
 		View();
-		View(HWND HWnd, RLGM::Interface* owner);
+		View(HWND HWnd, RLGM::Interface* owner, double height, double longitude, double latitude);
 		void AddRadar(int nRadarId);
 		void RemoveRadar(int nRadarId);
 		
+		void AddPixelOffset(int nX, int nY);
+		RLGM::GeoCoord xyToGeo(int x, int y);
+
 		//позиционирование Радара: центр, масштаб, поворот
 		void SetRadarPosition(int nRadarId, int nX, int nY);
 		std::pair<int, int> GetRadarPosition(int nRadarId);
